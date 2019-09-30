@@ -1,0 +1,338 @@
+{
+	"swagger": "2.0",
+	"info": {
+		"description": "The Raspberry Pi weather service allows sensor measurements to be persisted by instances collecting the data, and retrieved back again by a dashboard user-interface or other reporting tool.",
+		"version": "1.0.0",
+		"title": "Raspberry Pi weather service",
+		"contact": {
+			"email": "post@arronharden.com"
+		},
+		"license": {
+			"name": "Apache 2.0",
+			"url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+		}
+	},
+	"host": "localhost",
+	"basePath": "/v1",
+	"tags": [
+		{
+			"name": "Sensors",
+			"description": "Manage information about the sensors reporting measurements."
+		},
+		{
+			"name": "Measurements",
+			"description": "Manage the measurements made by sensors."
+		}
+	],
+	"schemes": [
+		"https"
+	],
+	"security": [
+		{
+			"weather_service_auth": []
+		}
+	],
+	"paths": {
+		"/sensors": {
+			"get": {
+				"tags": [
+					"Sensors"
+				],
+				"summary": "Gets the list of sensors.",
+				"description": "Gets details of all the sensors which have provided measurements.",
+				"operationId": "getSensors",
+				"produces": [
+					"application/json"
+				],
+				"responses": {
+					"200": {
+						"description": "Success.",
+						"schema": {
+							"type": "array",
+							"items": {
+								"$ref": "#/definitions/Sensor"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/sensors/{sensorId}/measurements": {
+			"get": {
+				"tags": [
+					"Measurements"
+				],
+				"summary": "Get the measurements for the specified sensor.",
+				"description": "Get the measurements within the specified time range for the sensor. If no time range is supplied the default behaviour will be to return the measurements for the previous 24 hours.",
+				"operationId": "getMeasurements",
+				"produces": [
+					"application/json"
+				],
+				"parameters": [
+					{
+						"name": "sensorId",
+						"in": "path",
+						"description": "The ID of the sensor to which the measurement relates.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "fromDate",
+						"in": "query",
+						"description": "The timestamp for the beginning of the date range to get the measurements for (in format YYYY-MM-DDTHH:mm:ssZ or YYYY-MM-DDTHH:mm:ss.sssZ, matching the date-time format as specified by RFC 3339). If not specified will default to 24 hours before the toDate parameter.",
+						"required": false,
+						"type": "string",
+						"format": "date-time"
+					},
+					{
+						"name": "toDate",
+						"in": "query",
+						"description": "The timestamp for the end of the date range to get the measurements for (in format YYYY-MM-DDTHH:mm:ssZ or YYYY-MM-DDTHH:mm:ss.sssZ, matching the date-time format as specified by RFC 3339). If not specified will default to now.",
+						"required": false,
+						"type": "string",
+						"format": "date-time"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success.",
+						"schema": {
+							"type": "array",
+							"items": {
+								"$ref": "#/definitions/Measurement"
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"tags": [
+					"Measurements"
+				],
+				"summary": "Add a new measurement for the specified sensor.",
+				"description": "Add a new measurement for the specified sensor into the persistent store.",
+				"operationId": "addMeasurement",
+				"consumes": [
+					"application/json"
+				],
+				"parameters": [
+					{
+						"name": "sensorId",
+						"in": "path",
+						"description": "The ID of the sensor which is reporting the measurement.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"in": "body",
+						"name": "body",
+						"description": "The measurement to store.",
+						"required": true,
+						"schema": {
+							"$ref": "#/definitions/Measurement"
+						}
+					}
+				],
+				"responses": {
+					"202": {
+						"description": "Accepted"
+					}
+				}
+			}
+		},
+		"/sensors/{sensorId}/measurements/summary": {
+			"get": {
+				"tags": [
+					"Measurements"
+				],
+				"summary": "Get a summary of measurements for the specified sensor.",
+				"description": "Get a summary (e.g. minimum, maximum, average) of the measurements within the specified time range for the sensor. If no time range is supplied the default behaviour will be to return the measurements for the previous 24 hours.",
+				"operationId": "getSummaryMeasurements",
+				"produces": [
+					"application/json"
+				],
+				"parameters": [
+					{
+						"name": "sensorId",
+						"in": "path",
+						"description": "The ID of the sensor to which the measurement summary relates.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "fromDate",
+						"in": "query",
+						"description": "The timestamp for the beginning of the date range to get the measurement summary for (in format YYYY-MM-DDTHH:mm:ssZ or YYYY-MM-DDTHH:mm:ss.sssZ, matching the date-time format as specified by RFC 3339). If not specified will default to 24 hours before the toDate parameter.",
+						"required": false,
+						"type": "string",
+						"format": "date-time"
+					},
+					{
+						"name": "toDate",
+						"in": "query",
+						"description": "The timestamp for the end of the date range to get the measurement summary for (in format YYYY-MM-DDTHH:mm:ssZ or YYYY-MM-DDTHH:mm:ss.sssZ, matching the date-time format as specified by RFC 3339). If not specified will default to now.",
+						"required": false,
+						"type": "string",
+						"format": "date-time"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success.",
+						"schema": {
+							"$ref": "#/definitions/MeasurementSummary"
+						}
+					}
+				}
+			}
+		}
+	},
+	"securityDefinitions": {
+		"weather_service_auth": {
+			"type": "apiKey",
+			"name": "Authorization",
+			"in": "header"
+		}
+	},
+	"definitions": {
+		"Measurement": {
+			"type": "object",
+			"properties": {
+				"humidity": {
+					"$ref": "#/definitions/MeasurementTypeHumidity"
+				},
+				"pressure": {
+					"$ref": "#/definitions/MeasurementTypePressure"
+				},
+				"temperature": {
+					"$ref": "#/definitions/MeasurementTypeTemperature"
+				},
+				"timestamp": {
+					"$ref": "#/definitions/Timestamp"
+				}
+			}
+		},
+		"MeasurementSummary": {
+			"type": "object",
+			"properties": {
+				"humidity": {
+					"type": "object",
+					"properties": {
+						"average": {
+							"$ref": "#/definitions/MeasurementTypeHumidity"
+						},
+						"latest": {
+							"$ref": "#/definitions/MeasurementTypeHumidityWithTimestamp"
+						},
+						"minimum": {
+							"$ref": "#/definitions/MeasurementTypeHumidityWithTimestamp"
+						},
+						"maximum": {
+							"$ref": "#/definitions/MeasurementTypeHumidityWithTimestamp"
+						}
+					}
+				},
+				"pressure": {
+					"type": "object",
+					"properties": {
+						"average": {
+							"$ref": "#/definitions/MeasurementTypePressure"
+						},
+						"latest": {
+							"$ref": "#/definitions/MeasurementTypePressureWithTimestamp"
+						},
+						"minimum": {
+							"$ref": "#/definitions/MeasurementTypePressureWithTimestamp"
+						},
+						"maximum": {
+							"$ref": "#/definitions/MeasurementTypePressureWithTimestamp"
+						}
+					}
+				},
+				"temperature": {
+					"type": "object",
+					"properties": {
+						"average": {
+							"$ref": "#/definitions/MeasurementTypeTemperature"
+						},
+						"latest": {
+							"$ref": "#/definitions/MeasurementTypeTemperatureWithTimestamp"
+						},
+						"minimum": {
+							"$ref": "#/definitions/MeasurementTypeTemperatureWithTimestamp"
+						},
+						"maximum": {
+							"$ref": "#/definitions/MeasurementTypeTemperatureWithTimestamp"
+						}
+					}
+				}
+			}
+		},
+		"MeasurementTypeHumidity": {
+			"type": "number",
+			"format": "double",
+			"example": 65.32
+		},
+		"MeasurementTypeHumidityWithTimestamp": {
+			"type": "object",
+			"properties": {
+				"timestamp": {
+					"$ref": "#/definitions/Timestamp"
+				},
+				"value": {
+					"$ref": "#/definitions/MeasurementTypeHumidity"
+				}
+			}
+		},
+		"MeasurementTypePressure": {
+			"type": "number",
+			"format": "double",
+			"example": 1012.41
+		},
+		"MeasurementTypePressureWithTimestamp": {
+			"type": "object",
+			"properties": {
+				"timestamp": {
+					"$ref": "#/definitions/Timestamp"
+				},
+				"value": {
+					"$ref": "#/definitions/MeasurementTypePressure"
+				}
+			}
+		},
+		"MeasurementTypeTemperature": {
+			"type": "number",
+			"format": "double",
+			"example": 21.44
+		},
+		"MeasurementTypeTemperatureWithTimestamp": {
+			"type": "object",
+			"properties": {
+				"timestamp": {
+					"$ref": "#/definitions/Timestamp"
+				},
+				"value": {
+					"$ref": "#/definitions/MeasurementTypeTemperature"
+				}
+			}
+		},
+		"Sensor": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string",
+					"example": "bme280-attic"
+				},
+				"alias": {
+					"type": "string",
+					"example": "Attic"
+				}
+			}
+		},
+		"Timestamp": {
+			"type": "string",
+			"format": "date-time",
+			"example": "2019-09-30T12:41:07.894Z"
+		}
+	}
+}
